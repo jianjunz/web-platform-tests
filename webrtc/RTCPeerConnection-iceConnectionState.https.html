@@ -371,4 +371,20 @@ promise_test(async t => {
   assert_array_equals(pc2.iceStates, ['new', 'checking', 'connected']);
 }, 'Responder ICE connection state behaves as expected');
 
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  const stream = await getNoiseStream({ audio: true });
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+
+  coupleIceCandidates(pc1, pc2);
+  doSignalingHandshake(pc1, pc2);
+  await listenToIceConnected(pc1);
+  pc2.oniceconnectionstatechange = t.unreached_func();
+  pc2.close();
+  assert_true(pc2.iceConnectionState === 'closed');
+}, 'Closing a PeerConnection should not fire iceconnectionstatechange event');
+
 </script>
